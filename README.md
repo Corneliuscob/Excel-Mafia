@@ -1,4 +1,4 @@
-# mafia_vba
+# mafia_vba (for reference)
 
 Game mechanics 
 1) Veteran goes on alert
