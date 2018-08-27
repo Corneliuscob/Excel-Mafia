@@ -1,40 +1,70 @@
-# mafia_vba (for reference)
-
-Game mechanics 
-1) Veteran goes on alert
-
-2) Target switches and role-blockers: Priority order is Witches, Bus Drivers, then role-blockers (Escort or Consort). It then repeats that cycle a random number of times to deal with complicated webs of events and paradoxes.
-
-3) Framer frames someone, Arsonist douses/undouses, and other miscellaneous role actions happen.
-
-4) Killing roles and suicides act simultaneously: Vigilante, Mafioso and Godfather, Serial Killer, Arsonist, Mass Murderer, Jester, and Disguiser in that order (being killed in a previous event does not matter, however), Bodyguard, Bus Driver, and Witch indirect kills/suicides happen throughout in the applicable areas.
-
-5) Janitor cleans a target
-
-6) Investigative roles detect (Sheriff, Investigator, Consigliere)
-
-7) Disguiser replaces his target if the kill was successful
+# Mafia written in VBA
 
 
-Settings are all default ON according to the starcraft WIKI unless otherwise specified with the following special rules and notes:
-- If the Doctor’s target visits the veteran, the veteran survives but the doctor dies
-- Doctors and Bodyguards cannot protect themselves
-- Neutrals will win if there is a deadlock where there are only neutrals left
-- If Witch controls Veteran to go on alert, Witch dies
-- If Escort/Consort block Veteran from going on alert, Escort/Consort dies but no one else will die if they visited the Veteran
-- If Witch controls Bus driver nothing happens
-- Godfather has night immunity, however, can be killed by lynch.
-- Mafioso becomes Godfather if Godfather dies.
-- Arsonists can douse anyone and the ignition is an absolute kill.
-- The arsonists know who they douse, by name, even if the target was switched
-- Serial Killer, Mass Murderer, and Arsonist cannot be killed by vigilante or mafioso but can be killed by veteran, bodyguard, arsonist or lynching.
-- Essentially, SK, MM, Arsonist, and godfather have night invulnerability; Jester, Witch, Amnesiac do not.
-- If MM kills multiple people in one night, they will enter a 1 day cooldown where they cannot kill during that time
--If Disguiser dies before they could kill and disguise as someone, they will die as DISGUISER and leave their own last will. If disguiser takes action, the target will die as DISGUISER and leave their own last will, while the true disguiser will now take on the role of their target, but they do not inherit their abilities.
-- Lookouts can target self.
--Escort/Consort mechanics: If A blocks B who blocks C who blocks D, B and D will be blocked.
-- Bus drivers can switch themselves.
-- Jester is the official winner if they are lynched; however, the rest of the players can vote on whether they want to continue the game afterwards.
-- Executioner is the official winner if they successfully get their target lynched; however, the rest of the players can vote if they want to continue afterwards. If their target dies by other means (ie murdered) the executioner becomes a jester.
+###The following code is written in VBA to simulate 1 night of the game Mafia. It uses Collections as the way to manage all the actions that occur and use the Excel Spreadsheet as a "database".
 
-Investigator/Consigliere mechanics:
+
+### amain is the main module and  function which performs the nights actions that occur. First, it creates the player colelction which is the current state of the Excel Sheet. This code is stored in the Creat_collection module.
+
+
+### Then, cycle actions occur. This is a wrapper loops through the collection for the players who  are character X ( mafioso, doctors,  bodyguards), following the game mechanics and performs the actions that the characters would have. For example a mafioso would have the ability to shoot a target. The cycle actions are found in the cycle_actions module. They all follow the syntax.
+
+
+` Sub cycleArsonists(coll As Collection) 
+        Dim user As cCharacter `
+        For Each user In coll
+            If user.Char = "arsonist" Then
+                If user.target = "ignite" Then
+                    ArsonistIgnite user.name, coll
+                ElseIf user.target = "" Then
+                Else
+                    ArsonistDouse user.target, user.name, coll
+                End If
+            End If
+        Next user
+ End Sub  `
+
+### Each player action follows a similar  structure. The majority of the player methods take a target, themselves(the character/activeUser), the player collection, as well as a depth counter and a former target (last two being optional parameters. They all have this syntax
+
+Sub Investigate(target As String, activeUser As String, ccoll As Collection, Optional depth As Integer = 1, Optional former As String)
+    Dim uList As String
+    ''this sub takes the target of the activeUser,  the activeUser and the player collection
+    ' this sub prints the target of the activeUser's target
+    'this sub is dependent on find_person_index and set_Excel
+
+    target_Id = find_person_index(target, ccoll)
+    activeUser_Id = find_person_index(activeUser, ccoll)
+    
+    If personIsBlocked(activeUser_Id, ccoll) Then
+        setExcel activeUser, 12, "you were blocked"
+        Exit Sub
+    End If
+
+    If depth > 1 Then
+        setExcel activeUser, 11, former
+        ccoll.Item(activeUser_Id).Visit = former
+    Else
+        setExcel activeUser, 11, target
+        ccoll.Item(activeUser_Id).Visit = target
+    End If
+    
+    If targetIsOnAlert(target_Id, ccoll) Then
+        ccoll.Item(activeUser_Id).Status = "dead"
+        setExcel activeUser, 3, "dead"
+        setExcel activeUser, 12, "you were killed by the veteran"
+        Exit Sub
+    End If
+    
+    If ccoll.Item(target_Id).Special <> "" And depth = 1 Then
+        Investigate ccoll.Item(target_Id).Special, activeUser, ccoll, depth + 1, target
+        Exit Sub
+    End If
+    
+    result = possible_crime_committed(ccoll.Item(target_Id).Char)
+    
+    setExcel activeUser, 12, "your target committed the following crime: " & result
+    
+
+End Sub
+
+
