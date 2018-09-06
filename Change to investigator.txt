@@ -1,0 +1,79 @@
+''''''''''
+Changes to investigator in helper function
+''''''''''
+
+
+Function possible_crime_committed(character As String)
+    
+    
+    Select Case character
+        Case "escort", "consort", "liaison", "jester"
+            possible_crime_committed = "Your target is skilled at disrupting others. They could be either Escort, Consort, Liaison, Jester."
+        Case "detective", "sherrif", "agent", "vanguard"
+            possible_crime_committed = " Your target has sensitive information to reveal. They could be either Detective, Sheriff, Agent, Vanguard."
+        Case "investigator", "framer", "forger", "executioner"
+            possible_crime_committed = "Your target sells information. They could either be Investigator, Framer, Forger, Executioner."
+        Case "marshall", "mayor", "veteran", "consigliere", "administrator"
+            possible_crime_committed = " Your target is someone of significant importance.  They could be either Marshall, Mayor, Veteran, Consigliere, Administrator."
+        Case "doctor", "janitor", "incense_master", "witch"
+            possible_crime_committed = "Your target is often covered in blood. They could either be Doctor, Janitor, Incense Master, Witch."
+        Case "bodyguard", "mafioso", "dragon_head", "serial_killer"
+            possible_crime_committed = "Your target is not afraid to get their hands dirty. They could be either Bodyguard, Mafioso, Dragon Head, Serial Killer."
+        Case "lookout", "disguiser", "informant", "amnesiac"
+            possible_crime_committed = " Your target is often visiting people's homes.  They could be either Lookout, Disguiser, Informant, Amnesiac."
+        Case "godfather", "enforcer", "mass_murderer", "vigilante"
+            possible_crime_committed = " Your target has a twisted sense of humour.  They could be either Godfather, Enforcer, Mass Murderer, Vigilante."
+
+    
+    
+    
+    
+    End Select
+
+End Function
+
+
+''''''''''
+Change to Investigate player action
+'''''''''''
+
+Sub Investigate(target As String, activeUser As String, ccoll As Collection, Optional depth As Integer = 1, Optional former As String)
+    Dim uList As String
+    ''this sub takes the target of the activeUser,  the activeUser and the player collection
+    ' this sub prints the target of the activeUser's target
+    'this sub is dependent on find_person_index and set_Excel
+
+    target_id = find_person_index(target, ccoll)
+    activeUser_Id = find_person_index(activeUser, ccoll)
+    
+    If personIsBlocked(activeUser_Id, ccoll) Then
+        setExcel activeUser, 12, "you were blocked"
+        Exit Sub
+    End If
+
+    If depth > 1 Then
+        setExcel activeUser, 11, former
+        ccoll.Item(activeUser_Id).Visit = former
+    Else
+        setExcel activeUser, 11, target
+        ccoll.Item(activeUser_Id).Visit = target
+    End If
+    
+    If targetIsOnAlert(target_id, ccoll) Then
+        ccoll.Item(activeUser_Id).Status = "dead"
+        setExcel activeUser, 3, "dead"
+        setExcel activeUser, 12, "you were killed by the veteran"
+        Exit Sub
+    End If
+    
+    If ccoll.Item(target_id).Special <> "" And depth = 1 Then
+        Investigate ccoll.Item(target_id).Special, activeUser, ccoll, depth + 1, target
+        Exit Sub
+    End If
+    
+    result = possible_crime_committed(ccoll.Item(target_id).Char)
+    
+    setExcel activeUser, 12, result
+    
+
+End Sub
